@@ -37,6 +37,7 @@ int fetch_response(int fd, unsigned timeout, unsigned maxbytes, char* data){
 	tv.tv_sec=(timeout/1000000);
 	tv.tv_usec=(timeout%1000000);
 
+	syncfs(fd);
 	rv=select(fd+1, &readfds, NULL, NULL, &tv);
 
 	if(rv<0){
@@ -74,7 +75,7 @@ int main(int argc, char** argv){
 	printf("PT1230 Interactive mode\n");
 
 	//open device file
-	fd=open("/dev/usb/lp0", O_RDWR);
+	fd=open("/dev/usb/lp0", O_RDWR |  O_SYNC);
 
 	if(fd<0){
 		printf("Failed to open device\n");
