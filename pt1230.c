@@ -324,7 +324,7 @@ int main(int argc, char** argv){
 		}
 		
 		//flush printing buffer to tape
-		debug(LOG_INFO, cfg.verbosity, "Starting print job\n");
+		debug(LOG_INFO, cfg.verbosity, "Starting print job processing\n");
 		if(cfg.chain_print){
 			if(send_command(cfg.device_fd, sizeof(PROTO_PRINT)-1, PROTO_PRINT)<0){
 				return -1;
@@ -337,7 +337,7 @@ int main(int argc, char** argv){
 		}
 
 		//wait until printer is done
-		debug(LOG_INFO, cfg.verbosity, "Waiting for printer...\n");
+		debug(LOG_INFO, cfg.verbosity, "Waiting for printer to finish\n");
 		
 		while(!print_ended){
 			count=fetch_status(cfg.device_fd, -1, 5000, sizeof(device_buffer), device_buffer);
@@ -347,31 +347,33 @@ int main(int argc, char** argv){
 			
 			if(count==0){
 				debug(LOG_WARNING, cfg.verbosity, "Received no status data, printer may have encountered an error or still be printing\n");
+				break;
 			}
 			else{
 				debug(LOG_DEBUG, cfg.verbosity, "Received %d status response structures\n", count);
 			}
 		
-			if(cfg.verbosity>=LOG_INFO){
+			if(cfg.verbosity>=LOG_DEBUG){
 				print_status(count, status);
 			}
 
 			for(i=0;i<count;i++){
 				switch(status[i].status){
 					case 0x00:
-						//request response
+						//status request response
+						//should not happen here, if it does anyway, ignore it
 						break;
 					case 0x01:
-						debug(LOG_INFO, cfg.verbosity, "Print ended.\n");
+						debug(LOG_INFO, cfg.verbosity, "Printing completed successfully\n");
 						print_ended=true;
 						break;
 					case 0x02:
-						debug(LOG_ERROR, cfg.verbosity, "The device reported an error, status dump follows\n");
+						debug(LOG_ERROR, cfg.verbosity, "Device reported an error, status dump follows\n");
 						print_status(1, status+i);
 						print_ended=true;
 						break;
 					case 0x06:
-						debug(LOG_INFO, cfg.verbosity, "Device changed phase\n");
+						debug(LOG_DEBUG, cfg.verbosity, "Phase change\n");
 						break;
 				}
 			}

@@ -1,0 +1,117 @@
+This project provides an easy-to-use, lightweight interface
+to the Brother PT-1230PC label printer (and possibly other, 
+protocol-compatible printers).
+
+Usage
+-----
+//TODO
+
+
+Helpful tools
+-------------
+bincode (https://github.com/jduepmeier/bincode/) enables you
+to create barcode data fit for simply piping into the interface's
+linemap setting.
+
+bitmap (A standard X11 application, package x11-apps in Debian)
+and its helper application bmtoa can be used for quickly creating
+bitmaps fit to be used with the bitmap mode of the interface.
+
+Protocol
+--------
+The protocol used in this interface has been reverse-engineered
+by reading software written by other people as well as more-or-less 
+official specification documents and wiki pages. See the "References" 
+section for links to those resources.
+
+The device sports a switch on its back side, offering a choice
+between "EL" (Editor Light) and "E" modes.
+
+EL seems to enable a mass storage medium containing windows
+binaries for the manufacturers interfacing tools, while
+the "E" position, at least under Linux, simply presents
+a USB Line printer interface to the system.
+
+Communication is bi-directional, with the printer always
+returning a full status report structure (32 Bytes).
+
+Initialization is performed by requesting the printer clear
+the print buffer
+	Host=>Printer | 1B 40
+
+After which by common agreement, a status request is sent
+(this might not be required for operation)
+	Host=>Printer | 1B 69 53
+
+The printer now sends 32 bytes of status data, which may
+be interpreted in order to find the media width, current
+printer phase, etc. Refer to the references section to
+find links explaining the status descriptor more in-depth
+	Printer=>Host | 32 Bytes Status descriptor
+
+The printer should now be set to raster graphics mode, in
+order to send sequential raster lines to be printed
+	Host=>Printer | 1B 69 52 01
+
+The printer is now ready to accept sequential lines of
+bitmapped data, special line commands or printing commands.
+Bitmap raster lines consist of a header
+	Host=>Printer | 47 #a #b
+followed by n data bytes, with n = (#a+256*#b). Since the
+print head in the 1230PC can only print 64 bits/pixels per
+raster line, #b can always be 0. However, in order to support
+larger media widths, there is a padding at the beginning of
+the data section, which (according to a more-or-less official
+spec document) must be set to 0 or "damage to the print head
+might ensue". The padding for 12mm media spans 4 bytes
+	Host=>Printer | 00 00 00 00
+after which 8 printable data bytes are sent, for a total of 12 bytes.
+Therefore, #a will be set to 0x0C for printing with 12mm media.
+The data bytes are mapped bit-by-bit to pixels, left-to-right mapping
+to MSB-to-LSB. No compression is performed, although most documents
+mention RLE/TIFF compression. To printing an all-black line on 
+12mm media would therefore end the raster line transfer with
+	Host=>Printer | FF FF FF FF FF FF FF FF
+
+An empty line can be printed by sending
+	Host=>Printer | 5A
+instead of the full raster line header
+
+The printer buffers the raster data internally (up to 30cm of data,
+according to some documents), indicating action by turning off or
+blinking the activity light. In order to print the current data buffer,
+a print-and-feed command can be sent
+	Host=>Printer | 1A
+this prints the buffer and thereafter advances the tape to a point where
+it can be safely cut, exposing the printed area.
+
+In order to chain-print, a simple "print" command can be sent,
+which only advances the tape a minimal amount, but still allows new
+raster data to be transferred.
+	Host=>Printer | 0C
+
+Building
+--------
+There are no dependencies other than standard system headers,
+a makefile is included. Simply running make while running a system
+with a working C compiler should do the trick. TCC is fine, too.
+
+References
+----------
+Special thanks to Bernhard Hatt, who wrote a similar tool,
+which was a great help in understanding the printer protocol
+(but please think a bit more about variable naming).
+
+The Undocumented Printing Wiki has some information about the
+protocol for various P-Touch printers at 
+http://www.undocprint.org/formats/page_description_languages/brother_p-touch
+
+Sources & Feedback
+------------------
+This projects home lies at https://github.com/cbdevnet/pt1230/
+Should this page ever not be available anymore, the new location
+will be announced somewhere on http://dev.cbcdn.com/
+
+Feature requests, bug reports and general Feedback is welcome and
+accepted via email to cb@cbcdn.com or via the Github Issue tracking
+system.
