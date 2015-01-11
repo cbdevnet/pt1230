@@ -1,5 +1,7 @@
 .PHONY: all clean
 
+CFLAGS=-Wall
+
 all: interactive pt1230
 
 interactive: interactive.c
