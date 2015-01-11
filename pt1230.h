@@ -2,6 +2,7 @@
 #define DEFAULT_ATTEMPTS	5
 #define DEFAULT_TIMEOUT		200
 #define DEVICE_BUFFER_LENGTH	25
+#define DATA_BUFFER_LENGTH	1024
 
 #define PROTO_INIT 		"\x1B@"			//Clear data buffer
 #define PROTO_STATUS_REQUEST	"\x1BiS"		//Request printer status

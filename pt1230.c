@@ -5,6 +5,7 @@
 #include <inttypes.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "pt1230.h"
 
@@ -19,6 +20,7 @@ int usage(char* fn){
 	printf("\t-b\t\tBitmap mode\n");
 	printf("\t-l\t\tLinemap mode\n");
 	printf("\t-c\t\tChain print (do not feed after printing)\n");
+	//TODO invert flag?
 	return 1;
 }
 
@@ -31,7 +33,7 @@ void debug(unsigned severity, unsigned current_level, char* fmt, ...){
 	va_end(args);
 }
 
-int fetch_status(int fd, unsigned attempts, unsigned timeout, size_t buffer_length, char* buffer){
+int fetch_status(int fd, int attempts, unsigned timeout, size_t buffer_length, char* buffer){
 	unsigned run;
 	ssize_t bytes;
 
@@ -154,7 +156,7 @@ int parse_arguments(CONF* cfg, int argc, char** argv){
 		device=DEFAULT_DEVICENODE;
 	}
 	debug(LOG_INFO, cfg->verbosity, "Opening device at %s\n", device);
-	cfg->device_fd=open(device, O_RDWR);
+	cfg->device_fd=open(device, O_RDWR | O_SYNC);
 	if(cfg->device_fd<0){
 		debug(LOG_ERROR, cfg->verbosity, "Failed to open printer device node\n");
 		return -1;
@@ -178,9 +180,89 @@ int parse_arguments(CONF* cfg, int argc, char** argv){
 	return 0;
 }
 
+int process_data(CONF* cfg){
+	char data_buffer[DATA_BUFFER_LENGTH];
+	uint8_t line_buffer[8], current_bit=0, current_byte=0;
+	ssize_t bytes;
+	unsigned i;
+
+	memset(line_buffer, 0, sizeof(line_buffer));
+
+	do{
+		//read data from input
+		bytes=read(cfg->input_fd, data_buffer, sizeof(data_buffer));
+		data_buffer[bytes]=0;
+		debug(LOG_DEBUG, cfg->verbosity, "Current data buffer: %s\n", data_buffer);
+
+		//process
+		for(i=0;i<bytes;i++){
+			switch(cfg->mode){
+				case MODE_BITMAP:
+					switch(data_buffer[i]){
+						case '1':
+							line_buffer[7-current_byte]|=(0x01<<current_bit);
+						case '0':
+							current_bit++;
+							current_bit%=8;
+							if(current_bit==0){
+								current_byte++;
+								current_byte%=8;
+							}
+							break;
+						case '\n':
+							debug(LOG_DEBUG, cfg->verbosity, "Sending bitmap raster line\n");
+							if(send_command(cfg->device_fd, sizeof(PROTO_RASTERLINE)-1, PROTO_RASTERLINE)<0){
+								return -1;
+							}
+							if(send_command(cfg->device_fd, sizeof(line_buffer), (char*)line_buffer)<0){
+								return -1;
+							}
+
+							memset(line_buffer, 0, sizeof(line_buffer));
+							break;
+						default:
+							debug(LOG_WARNING, cfg->verbosity, "Illegal character '%02X' in input stream, ignoring\n", (unsigned char)data_buffer[i]);
+					}
+					break;
+				case MODE_LINEMAP:
+					switch(data_buffer[i]){
+						case '0':
+							debug(LOG_DEBUG, cfg->verbosity, "Sending white raster line\n");
+							if(send_command(cfg->device_fd, sizeof(PROTO_RASTERLINE_WHITE)-1, PROTO_RASTERLINE_WHITE)<0){
+								return -1;
+							}
+							break;
+						case '1':
+							debug(LOG_DEBUG, cfg->verbosity, "Sending black raster line\n");
+							if(send_command(cfg->device_fd, sizeof(PROTO_RASTERLINE_BLACK)-1, PROTO_RASTERLINE_BLACK)<0){
+								return -1;
+							}
+							break;
+						default:
+							debug(LOG_WARNING, cfg->verbosity, "Illegal character '%02X' in input stream, ignoring\n", (unsigned char)data_buffer[i]);
+					}
+					break;
+				default:
+					debug(LOG_ERROR, cfg->verbosity, "Illegal branch, aborting\n");
+					return -1;
+			}
+			usleep(1000);
+		}
+	}
+	while(bytes>0);
+	if(bytes<0){
+		perror("input/read");
+		return -1;
+	}
+	return 0;
+}
+
 int main(int argc, char** argv){
 	int count;
+	unsigned i;
 	char device_buffer[(DEVICE_BUFFER_LENGTH*sizeof(PROTO_STATUS))];
+	bool print_ended=false;
+	PROTO_STATUS* status=(PROTO_STATUS*)device_buffer;
 
 	CONF cfg={
 		0,		//verbosity
@@ -225,19 +307,24 @@ int main(int argc, char** argv){
 
 	if(cfg.mode==MODE_QUERY||cfg.verbosity>0){
 		//dump status record
-		print_status(count, (PROTO_STATUS*)device_buffer);
+		print_status(count, status);
 	}
 	
 	if(cfg.mode!=MODE_QUERY){
-		debug(LOG_INFO, cfg.verbosity, "Switching to raster graphics mode\n");
-
 		//switch to raster graphics mode
+		debug(LOG_INFO, cfg.verbosity, "Switching to raster graphics mode\n");
 		if(send_command(cfg.device_fd, sizeof(PROTO_RASTER)-1, PROTO_RASTER)<0){
 			return -1;
 		}
 
-		//TODO Read input data, push out lines
+		//handle input data
+		debug(LOG_INFO, cfg.verbosity, "Starting data processing\n");
+		if(process_data(&cfg)<0){
+			return -1;
+		}
 		
+		//flush printing buffer to tape
+		debug(LOG_INFO, cfg.verbosity, "Starting print job\n");
 		if(cfg.chain_print){
 			if(send_command(cfg.device_fd, sizeof(PROTO_PRINT)-1, PROTO_PRINT)<0){
 				return -1;
@@ -249,7 +336,46 @@ int main(int argc, char** argv){
 			}
 		}
 
-		//TODO wait until printer is done
+		//wait until printer is done
+		debug(LOG_INFO, cfg.verbosity, "Waiting for printer...\n");
+		
+		while(!print_ended){
+			count=fetch_status(cfg.device_fd, -1, 5000, sizeof(device_buffer), device_buffer);
+			if(count<0){
+				return -1;
+			}
+			
+			if(count==0){
+				debug(LOG_WARNING, cfg.verbosity, "Received no status data, printer may have encountered an error or still be printing\n");
+			}
+			else{
+				debug(LOG_DEBUG, cfg.verbosity, "Received %d status response structures\n", count);
+			}
+		
+			if(cfg.verbosity>=LOG_INFO){
+				print_status(count, status);
+			}
+
+			for(i=0;i<count;i++){
+				switch(status[i].status){
+					case 0x00:
+						//request response
+						break;
+					case 0x01:
+						debug(LOG_INFO, cfg.verbosity, "Print ended.\n");
+						print_ended=true;
+						break;
+					case 0x02:
+						debug(LOG_ERROR, cfg.verbosity, "The device reported an error, status dump follows\n");
+						print_status(1, status+i);
+						print_ended=true;
+						break;
+					case 0x06:
+						debug(LOG_INFO, cfg.verbosity, "Device changed phase\n");
+						break;
+				}
+			}
+		}
 	}
 
 	//clean up
