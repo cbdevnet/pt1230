@@ -229,7 +229,14 @@ int main(int argc, char** argv){
 	}
 	
 	if(cfg.mode!=MODE_QUERY){
-		//TODO Read input data
+		debug(LOG_INFO, cfg.verbosity, "Switching to raster graphics mode\n");
+
+		//switch to raster graphics mode
+		if(send_command(cfg.device_fd, sizeof(PROTO_RASTER)-1, PROTO_RASTER)<0){
+			return -1;
+		}
+
+		//TODO Read input data, push out lines
 	}
 
 	//clean up
