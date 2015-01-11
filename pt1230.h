@@ -1,4 +1,11 @@
-#define DEFAULT_DEVICENODE "/dev/usb/lp0"
+#define DEFAULT_DEVICENODE 	"/dev/usb/lp0"
+#define DEFAULT_ATTEMPTS	5
+#define DEFAULT_TIMEOUT		200
+#define DEVICE_BUFFER_LENGTH	25
+
+#define PROTO_INIT 		"\x1B@"		//Clear data buffer
+#define PROTO_STATUS_REQUEST	"\x1BiS"	//Request printer status
+#define PROTO_RASTER 		"\x1BiR\x01"	//Switch to raster mode
 
 typedef struct __attribute__((__packed__)) /*_PT1230_STATUS*/ {
 	uint8_t magic[8];
@@ -14,7 +21,7 @@ typedef struct __attribute__((__packed__)) /*_PT1230_STATUS*/ {
 	uint8_t phase_low;
 	uint8_t notification;
 	uint8_t reserved2[9];
-} STATUS;
+} PROTO_STATUS;
 
 typedef enum /*_1230_MODE*/ {
 	MODE_QUERY,
