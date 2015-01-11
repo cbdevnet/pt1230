@@ -5,11 +5,35 @@ protocol-compatible printers).
 Usage
 -----
 //TODO
+Interface usage
+Image format
 
+Interactive harness usage
+	This tool was mainly used as a test harness in reverse-
+	engineering the printer protocol. The code is messy and
+	incomplete, but it can do some things.
+	Upon starting, it opens the device and waits for input
+	on stdin. Valid commands are
+
+	q	Close device and exit
+	i	Check for data to be read from device
+	c	Send "clear print buffer" command
+	s	Send "status request" command
+	r	Send "switch to raster mode" command
+	z	Send white raster line shorthand
+	l	Send black raster line
+	x	Send stripe raster line a (used for testing)
+	y	Send stripe raster line b (used for testing)
+	f	Send "print and feed" command
+	p	Send "print" command
+	b	Enable/disable bitmap mode
+	1	Send black pixel in bitmap mode
+	0	Send white pixel in bitmap mode
+	newline	Transmit raster line in bitmap mode
 
 Helpful tools
 -------------
-bincode (https://github.com/jduepmeier/bincode/) enables you
+bincodes (https://github.com/jduepmeier/bincodes/) enables you
 to create barcode data fit for simply piping into the interface's
 linemap setting.
 
@@ -69,8 +93,8 @@ after which 8 printable data bytes are sent, for a total of 12 bytes.
 Therefore, #a will be set to 0x0C for printing with 12mm media.
 The data bytes are mapped bit-by-bit to pixels, left-to-right mapping
 to MSB-to-LSB. No compression is performed, although most documents
-mention RLE/TIFF compression. To printing an all-black line on 
-12mm media would therefore end the raster line transfer with
+mention RLE/TIFF compression. To print an all-black line on 12mm 
+media would therefore end the raster line transfer with
 	Host=>Printer | FF FF FF FF FF FF FF FF
 
 An empty line can be printed by sending
