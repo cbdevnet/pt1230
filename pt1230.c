@@ -237,6 +237,19 @@ int main(int argc, char** argv){
 		}
 
 		//TODO Read input data, push out lines
+		
+		if(cfg.chain_print){
+			if(send_command(cfg.device_fd, sizeof(PROTO_PRINT)-1, PROTO_PRINT)<0){
+				return -1;
+			}
+		}
+		else{
+			if(send_command(cfg.device_fd, sizeof(PROTO_PRINT_FEED)-1, PROTO_PRINT_FEED)<0){
+				return -1;
+			}
+		}
+
+		//TODO wait until printer is done
 	}
 
 	//clean up
