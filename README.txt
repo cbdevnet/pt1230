@@ -122,13 +122,22 @@ with a working C compiler should do the trick. TCC is fine, too.
 
 References
 ----------
-Special thanks to Bernhard Hatt, who wrote a similar tool,
+Special thanks to Bernard Hatt, who wrote a similar tool,
 which was a great help in understanding the printer protocol
 (but please think a bit more about variable naming).
+ => http://forums.openprinting.org/read.php?24,11091
 
 The Undocumented Printing Wiki has some information about the
-protocol for various P-Touch printers at 
-http://www.undocprint.org/formats/page_description_languages/brother_p-touch
+protocol for various P-Touch printers.
+ => http://www.undocprint.org/formats/page_description_languages/brother_p-touch
+
+Another application supporting this printer is blabel, which
+presents a graphical interface for label printing.
+ => http://apz.fi/blabel/
+
+The Brother PT-9500PC Command reference document seems not to
+be distributed by Brother anymore, but digital copies of it
+can be found by querying your favourite search engine.
 
 Sources & Feedback
 ------------------
