@@ -243,7 +243,7 @@ int process_data(CONF* cfg){
 					}
 					break;
 				default:
-					debug(LOG_ERROR, cfg->verbosity, "Illegal branch, aborting\n");
+					debug(LOG_ERROR, cfg->verbosity, "Illegal branch, mode is %d, aborting\n", cfg->mode);
 					return -1;
 			}
 			usleep(1000);

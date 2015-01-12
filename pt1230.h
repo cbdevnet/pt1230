@@ -31,9 +31,9 @@ typedef struct __attribute__((__packed__)) /*_PT1230_STATUS*/ {
 } PROTO_STATUS;
 
 typedef enum /*_1230_MODE*/ {
-	MODE_QUERY,
-	MODE_BITMAP,
-	MODE_LINEMAP
+	MODE_QUERY=0,
+	MODE_BITMAP=1,
+	MODE_LINEMAP=2
 } MODE;
 
 typedef struct /*_CONFIG*/ {

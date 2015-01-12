@@ -4,9 +4,31 @@ protocol-compatible printers).
 
 Usage
 -----
-//TODO
+Image Format
+	Raster images need to be supplied as 64 pixels wide
+	monochrome images in ASCII bitmap format, that is
+	consecutive lines of 64 0/1 characters.
+	Linemap is similarly formatted as consecutive 0/1
+	characters representing white/black bars, respectively.
+
 Interface usage
-Image format
+	The main application of this project is the pt1230
+	binary, presenting a convenient interface to the printer
+	for bitmap/line data. Input data can either be piped
+	in via stdin, or read from a file by supplying the
+	option mentioned below.
+	
+	Options accepted by the interface are as follows
+		-h		Print a short help text
+		-d <device>	Override device node location
+		-f <file>	Set input file location
+		-v[v[v[v]]]	Increase verbosity
+		-c		Chain print mode
+
+	Interface operation modes
+		-s		Status query mode (default)
+		-b		Bitmap mode (see Image data format)
+		-l		Linemap mode (see Image data format)
 
 Interactive harness usage
 	This tool was mainly used as a test harness in reverse-
@@ -40,6 +62,10 @@ linemap setting.
 bitmap (A standard X11 application, package x11-apps in Debian)
 and its helper application bmtoa can be used for quickly creating
 bitmaps fit to be used with the bitmap mode of the interface.
+
+The GIMP has the capabilities to export it's projects as X Bitmap
+Files (xbm), which can also be read by bmtoa and thus used as
+input to the interface.
 
 Protocol
 --------
