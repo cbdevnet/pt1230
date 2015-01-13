@@ -219,6 +219,10 @@ int process_data(CONF* cfg){
 							}
 
 							memset(line_buffer, 0, sizeof(line_buffer));
+							
+							//not really necessary, prevents some dumb paths though
+							current_bit=0;
+							current_byte=0;
 							break;
 						default:
 							debug(LOG_WARNING, cfg->verbosity, "Illegal character '%02X' in input stream, ignoring\n", (unsigned char)data_buffer[i]);

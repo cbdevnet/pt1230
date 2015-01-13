@@ -106,17 +106,20 @@ order to send sequential raster lines to be printed
 The printer is now ready to accept sequential lines of
 bitmapped data, special line commands or printing commands.
 Bitmap raster lines consist of a header
-	Host=>Printer | 47 #a #b
-followed by n data bytes, with n = (#a+256*#b). Since the
+	Host=>Printer | 47 $a $b
+followed by n data bytes, with n = ($a+256*$b). Another way of
+looking at this would be that the data length is encoded as 
+16bit unsigned integer in little endian notation. Since the
 print head in the 1230PC can only print 64 bits/pixels per
-raster line, #b can always be 0. However, in order to support
-larger media widths, there is a padding at the beginning of
-the data section, which (according to a more-or-less official
-spec document) must be set to 0 or "damage to the print head
-might ensue". The padding for 12mm media spans 4 bytes
+raster line, $b can always be 0 (as this printer will never need
+more than 256 data bytes for any one raster line). However, in 
+order to support larger media widths, there is a padding at the 
+beginning of the data section, which (according to a more-or-less 
+official spec document) must be set to 0 or "damage to the print 
+head might ensue". The padding for 12mm media spans 4 bytes
 	Host=>Printer | 00 00 00 00
 after which 8 printable data bytes are sent, for a total of 12 bytes.
-Therefore, #a will be set to 0x0C for printing with 12mm media.
+Therefore, $a can be set to 0x0C for printing with 12mm media.
 The data bytes are mapped bit-by-bit to pixels, left-to-right mapping
 to MSB-to-LSB. No compression is performed, although most documents
 mention RLE/TIFF compression. To print an all-black line on 12mm 
@@ -125,7 +128,7 @@ media would therefore end the raster line transfer with
 
 An empty line can be printed by sending
 	Host=>Printer | 5A
-instead of the full raster line header
+instead of the full raster line structure
 
 The printer buffers the raster data internally (up to 30cm of data,
 according to some documents), indicating action by turning off or
