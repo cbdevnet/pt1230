@@ -126,7 +126,7 @@ int parse_arguments(CONF* cfg, int argc, char** argv){
 				case 'v':
 					for(v=1;argv[i][v]=='v';v++){
 					}
-					cfg->verbosity=v;
+					cfg->verbosity=v-1;
 					break;
 				case 's':
 					cfg->mode=MODE_QUERY;
@@ -229,6 +229,7 @@ int process_data(CONF* cfg){
 					}
 					break;
 				case MODE_LINEMAP:
+					//FIXME this is somehow slightly wrong
 					switch(data_buffer[i]){
 						case '0':
 							debug(LOG_DEBUG, cfg->verbosity, "Sending white raster line\n");
@@ -247,6 +248,7 @@ int process_data(CONF* cfg){
 					}
 					break;
 				default:
+					//FIXME tcc falls through here because of some bug
 					debug(LOG_ERROR, cfg->verbosity, "Illegal branch, mode is %d, aborting\n", cfg->mode);
 					return -1;
 			}
@@ -283,6 +285,7 @@ int main(int argc, char** argv){
 	
 	debug(LOG_DEBUG, cfg.verbosity, "Status structure size %d\n", sizeof(PROTO_STATUS));
 	debug(LOG_DEBUG, cfg.verbosity, "Init sentence length %d\n", sizeof(PROTO_INIT));
+	debug(LOG_INFO, cfg.verbosity, "Verbosity %d\n", cfg.verbosity);
 
 	//fetch device_fd data for leftovers
 	if(fetch_status(cfg.device_fd, DEFAULT_ATTEMPTS, DEFAULT_TIMEOUT, sizeof(device_buffer), device_buffer)<0){
@@ -322,13 +325,13 @@ int main(int argc, char** argv){
 		}
 
 		//handle input data
-		debug(LOG_INFO, cfg.verbosity, "Starting data processing\n");
+		debug(LOG_STATUS, cfg.verbosity, "Reading image data\n");
 		if(process_data(&cfg)<0){
 			return -1;
 		}
 		
 		//flush printing buffer to tape
-		debug(LOG_INFO, cfg.verbosity, "Starting print job processing\n");
+		debug(LOG_STATUS, cfg.verbosity, "Starting printer processing\n");
 		if(cfg.chain_print){
 			if(send_command(cfg.device_fd, sizeof(PROTO_PRINT)-1, PROTO_PRINT)<0){
 				return -1;
@@ -341,7 +344,7 @@ int main(int argc, char** argv){
 		}
 
 		//wait until printer is done
-		debug(LOG_INFO, cfg.verbosity, "Waiting for printer to finish\n");
+		debug(LOG_STATUS, cfg.verbosity, "Waiting for printer to finish\n");
 		
 		while(!print_ended){
 			count=fetch_status(cfg.device_fd, -1, 5000, sizeof(device_buffer), device_buffer);
@@ -368,7 +371,7 @@ int main(int argc, char** argv){
 						//should not happen here, if it does anyway, ignore it
 						break;
 					case 0x01:
-						debug(LOG_INFO, cfg.verbosity, "Printing completed successfully\n");
+						debug(LOG_STATUS, cfg.verbosity, "Printing completed successfully\n");
 						print_ended=true;
 						break;
 					case 0x02:
