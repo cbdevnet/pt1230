@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdbool.h>
+#include <string.h>
 
 void dump_buffer(unsigned length, char* data){
 	unsigned i;
