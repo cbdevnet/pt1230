@@ -2,12 +2,12 @@
 
 CFLAGS=-Wall
 
-all: interactive pt1230
+all: pt1230
 
 interactive: interactive.c
 
 pt1230: pt1230.c
 
 clean:
-	rm interactive
-	rm pt1230
+	-rm interactive
+	-rm pt1230
