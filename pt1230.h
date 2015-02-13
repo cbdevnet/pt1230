@@ -45,8 +45,9 @@ typedef struct /*_CONFIG*/ {
 } CONF;
 
 #define LOG_ERROR 0
-#define LOG_WARNING 1
-#define LOG_INFO 2
-#define LOG_DEBUG 3
+#define LOG_STATUS 0
+#define LOG_WARNING 0
+#define LOG_INFO 1
+#define LOG_DEBUG 2
 
 void debug(unsigned severity, unsigned current_level, char* fmt, ...);
