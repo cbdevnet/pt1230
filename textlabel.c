@@ -298,7 +298,7 @@ int main(int argc, char** argv){
 					break;
 				}
 				//render to bitmap
-				if(FT_Glyph_To_Bitmap((FT_Glyph*)(glyphs[i])+c, FT_RENDER_MODE_MONO, 0, 0)){
+				if(FT_Glyph_To_Bitmap((FT_Glyph*)(glyphs[i])+c, FT_RENDER_MODE_MONO, 0, 1)){
 					printf("Failed to render glyph, aborting\n");
 					break;
 				}
