@@ -5,6 +5,7 @@
 #include FT_FREETYPE_H
 #include FT_GLYPH_H
 #include <fontconfig/fontconfig.h>
+#include <inttypes.h>
 
 typedef struct /*_TLABEL_OPTS*/ {
 	char* fontspec;
@@ -186,7 +187,7 @@ bool load_font(FT_Library ft, FcPattern* pattern, unsigned char_height, FT_Face*
 	char* font_file=NULL;
 	switch(FcPatternGetString(pattern, FC_FILE, 0, (FcChar8**)&font_file)){
 		case FcResultMatch:
-			printf("Font file %s\n", font_file);
+			fprintf(stderr, "Font file %s\n", font_file);
 			break;
 		default:
 			printf("Failed to find font location\n");
@@ -204,7 +205,7 @@ bool load_font(FT_Library ft, FcPattern* pattern, unsigned char_height, FT_Face*
 			return false;
 	}
 
-	printf("Setting glyph sizes to %d pixels\n", char_height);
+	fprintf(stderr, "Setting glyph sizes to %d pixels\n", char_height);
 	if(FT_Set_Pixel_Sizes(*face, 0, char_height)){
 		printf("Failed to set glyph size %d - font might not offer that size or might not be scalable\n", char_height);
 		return false;
@@ -220,11 +221,14 @@ int main(int argc, char** argv){
 		.width = 64
 	};
 	int i, c;
-	bool done_printing=false;
 	FT_Library ft_handle;
 	FcPattern* font_pattern=NULL;
-	FT_BitmapGlyph* glyphs;
+	FT_BitmapGlyph** glyphs;
 	FT_Face font_face;
+	int* current_character=NULL;
+	int* current_rasterline=NULL;
+	bool done_rendering=false;
+	unsigned line_height=64;
 
 	if(argc<2){
 		exit(usage(argv[0]));
@@ -252,65 +256,135 @@ int main(int argc, char** argv){
 		exit(usage(argv[0]));
 	}
 
-	glyphs=calloc(stored_lines(opts.lines), sizeof(FT_BitmapGlyph));
-	if(!glyphs){
-		printf("Failed to allocate memory for glyph array\n");
+	line_height=opts.width/stored_lines(opts.lines);
+	//TODO calculate master filler
+
+	current_character=calloc(stored_lines(opts.lines), sizeof(int));
+	current_rasterline=calloc(stored_lines(opts.lines), sizeof(int));
+
+	if(!current_character || !current_rasterline){
+		printf("Failed to allocate memory\n");
 		exit(EXIT_FAILURE);
+	}
+
+	glyphs=calloc(stored_lines(opts.lines), sizeof(FT_BitmapGlyph*));
+	if(!glyphs){
+		printf("Failed to allocate memory for glyph arrays\n");
+		exit(EXIT_FAILURE);
+	}
+
+	for(i=0;i<stored_lines(opts.lines);i++){
+		glyphs[i]=calloc(strlen(opts.lines[i]), sizeof(FT_BitmapGlyph));
+		if(!glyphs[i]){
+			printf("Failed to allocate memory for glyph array\n");
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	//load the font
 	font_pattern=match_font(opts.fontspec);
-	if(font_pattern && load_font(ft_handle, font_pattern, opts.width/stored_lines(opts.lines), &font_face)){
-		//TODO render all strings into glyph arrays, work on them.
-		c=0;
-		do{
-			done_printing=true;
-			for(i=stored_lines(opts.lines)-1;i>=0;i--){
-				//get nth character if possible
-				if(strlen(opts.lines[i])>c){
-					done_printing=false;
-				}
-				else{
-					continue;
-				}
-
+	if(font_pattern && load_font(ft_handle, font_pattern, line_height, &font_face)){
+		//render all strings into glyph arrays
+		for(i=0;i<stored_lines(opts.lines);i++){
+			for(c=0;c<strlen(opts.lines[i]);c++){
 				//get glyph
 				if(FT_Load_Glyph(font_face, FT_Get_Char_Index(font_face, opts.lines[i][c]), FT_LOAD_DEFAULT)){
 					printf("Font has no glyph for %c, aborting\n", opts.lines[i][c]);
 					break;
 				}
-
-				//store to current glyph array
-				if(glyphs[i]){
-					FT_Done_Glyph((FT_Glyph)glyphs[i]);
-				}
-				if(FT_Get_Glyph(font_face->glyph, (FT_Glyph*)glyphs+i)){
+				//copy glyph to array
+				if(FT_Get_Glyph(font_face->glyph, (FT_Glyph*)(glyphs[i])+c)){
 					printf("Failed to copy glyph, aborting\n");
 					break;
 				}
-
-				if(FT_Glyph_To_Bitmap((FT_Glyph*)glyphs+i, FT_RENDER_MODE_MONO, 0, 0)){
+				//render to bitmap
+				if(FT_Glyph_To_Bitmap((FT_Glyph*)(glyphs[i])+c, FT_RENDER_MODE_MONO, 0, 0)){
 					printf("Failed to render glyph, aborting\n");
 					break;
-				}	
+				}
+				//test pixel format
+				if(glyphs[i][c]->bitmap.pixel_mode!=FT_PIXEL_MODE_MONO){
+					printf("Got unsupported pixel format\n");
+					break;
+				}
+			}
+		}
+
+		//actual rendering portion
+		do{
+			//process one rasterline
+			done_rendering=true;
+
+			for(i=stored_lines(opts.lines)-1;i>=0;i--){
+				if(current_character[i]>=strlen(opts.lines[i])){
+					//print zeroes
+					for(c=0;c<line_height;c++){
+						printf("0");
+					}
+					continue;
+				}
+
+				FT_BitmapGlyph current=glyphs[i][current_character[i]];
+				uint8_t mask=1<<(7-(current_rasterline[i]%8));
+
+				fprintf(stderr, "line %d of char %d of line %d, mask %2X, offset %d, rows %d, width %d, pitch %d\n", current_rasterline[i], current_character[i], i, mask, current_rasterline[i]/8, current->bitmap.rows, current->bitmap.width, current->bitmap.pitch);
+
+				if(current_rasterline[i]<current->bitmap.width){
+					done_rendering=false;
+				}
+				else{
+					if(current_character[i]<strlen(opts.lines[i])){
+						current_character[i]++;
+						current_rasterline[i]=0;
+						done_rendering=false;
+						//print separator line
+						for(c=0;c<line_height;c++){
+							printf("0");
+						}
+						continue;
+					}
+					else{
+						printf("This should not have happened\n");
+						continue;
+					}
+				}
+
+				//print pixels
+				for(c=current->bitmap.rows-1;c>=0;c--){
+					uint8_t cell_index=(c*current->bitmap.pitch)+(current_rasterline[i]/8);
+					uint8_t cell_value=current->bitmap.buffer[cell_index];
+					fprintf(stderr, "\nTesting cell %d with value %2X -> %2X -> ", cell_index, cell_value, cell_value|mask);
+					
+					printf("%c", ((cell_value&mask)>0)?'1':'0');
+				}
+
+				//print filler
+				for(c=current->bitmap.rows;c<line_height;c++){
+					printf("0");
+				}
+
+				current_rasterline[i]++;
 			}
 
-			//if(!done_printing){
-				//iterate over glyph array, render glyphs
-				for(i=stored_lines(opts.lines)-1;i>=0;i--){
-					printf("Glyph %c rows=%d, width=%d\n", opts.lines[i][c], glyphs[i]->bitmap.rows, glyphs[i]->bitmap.width);
-				}
-			//}
+			printf("\n");
+		} while (!done_rendering);
 
-			c++;
-		} while(!done_printing);
+		for(i=0;opts.lines[i];i++){
+			for(c=0;c<strlen(opts.lines[i]);c++){
+				FT_Done_Glyph((FT_Glyph)(glyphs[i][c]));
+			}
+		}
 
 		//TODO kerning (see http://www.freetype.org/freetype2/docs/tutorial/step2.html)
 		FT_Done_Face(font_face);
 	}
 
-
 	//clean up
+	for(i=0;opts.lines[i];i++){
+		free(glyphs[i]);
+	}
+	free(glyphs);
+
 	for(i=0;opts.lines[i];i++){
 		free(opts.lines[i]);
 	}
@@ -319,10 +393,12 @@ int main(int argc, char** argv){
 	if(font_pattern){
 		FcPatternDestroy(font_pattern);
 	}
+
+	free(current_character);
+	free(current_rasterline);
 	
 	FT_Done_FreeType(ft_handle);
 	FcFini();
 
-	free(glyphs);
 	return EXIT_SUCCESS;
 }
