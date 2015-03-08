@@ -187,7 +187,7 @@ bool load_font(FT_Library ft, FcPattern* pattern, unsigned char_height, FT_Face*
 	char* font_file=NULL;
 	switch(FcPatternGetString(pattern, FC_FILE, 0, (FcChar8**)&font_file)){
 		case FcResultMatch:
-			fprintf(stderr, "Font file %s\n", font_file);
+			//fprintf(stderr, "Font file %s\n", font_file);
 			break;
 		default:
 			printf("Failed to find font location\n");
@@ -205,7 +205,7 @@ bool load_font(FT_Library ft, FcPattern* pattern, unsigned char_height, FT_Face*
 			return false;
 	}
 
-	fprintf(stderr, "Setting glyph sizes to %d pixels\n", char_height);
+	//fprintf(stderr, "Setting glyph sizes to %d pixels\n", char_height);
 	if(FT_Set_Pixel_Sizes(*face, 0, char_height)){
 		printf("Failed to set glyph size %d - font might not offer that size or might not be scalable\n", char_height);
 		return false;
@@ -228,7 +228,7 @@ int main(int argc, char** argv){
 	int* current_character=NULL;
 	int* current_rasterline=NULL;
 	bool done_rendering=false;
-	unsigned line_height=64;
+	unsigned line_height=64, extra_filler;
 
 	if(argc<2){
 		exit(usage(argv[0]));
@@ -257,7 +257,7 @@ int main(int argc, char** argv){
 	}
 
 	line_height=opts.width/stored_lines(opts.lines);
-	//TODO calculate master filler
+	extra_filler=opts.width-(line_height*stored_lines(opts.lines));
 
 	current_character=calloc(stored_lines(opts.lines), sizeof(int));
 	current_rasterline=calloc(stored_lines(opts.lines), sizeof(int));
@@ -327,7 +327,7 @@ int main(int argc, char** argv){
 				FT_BitmapGlyph current=glyphs[i][current_character[i]];
 				uint8_t mask=1<<(7-(current_rasterline[i]%8));
 
-				fprintf(stderr, "line %d of char %d of line %d, mask %2X, offset %d, rows %d, width %d, pitch %d\n", current_rasterline[i], current_character[i], i, mask, current_rasterline[i]/8, current->bitmap.rows, current->bitmap.width, current->bitmap.pitch);
+				//fprintf(stderr, "line %d of char %d of line %d, mask %2X, offset %d, rows %d, width %d, pitch %d\n", current_rasterline[i], current_character[i], i, mask, current_rasterline[i]/8, current->bitmap.rows, current->bitmap.width, current->bitmap.pitch);
 
 				if(current_rasterline[i]<current->bitmap.width){
 					done_rendering=false;
@@ -353,7 +353,7 @@ int main(int argc, char** argv){
 				for(c=current->bitmap.rows-1;c>=0;c--){
 					uint8_t cell_index=(c*current->bitmap.pitch)+(current_rasterline[i]/8);
 					uint8_t cell_value=current->bitmap.buffer[cell_index];
-					fprintf(stderr, "\nTesting cell %d with value %2X -> %2X -> ", cell_index, cell_value, cell_value|mask);
+					//fprintf(stderr, "\nTesting cell %d with value %2X -> %2X -> ", cell_index, cell_value, cell_value&mask);
 					
 					printf("%c", ((cell_value&mask)>0)?'1':'0');
 				}
@@ -366,6 +366,9 @@ int main(int argc, char** argv){
 				current_rasterline[i]++;
 			}
 
+			for(c=0;c<extra_filler;c++){
+				printf("0");
+			}
 			printf("\n");
 		} while (!done_rendering);
 

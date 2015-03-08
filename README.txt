@@ -53,6 +53,20 @@ Interactive harness usage
 	0	Send white pixel in bitmap mode
 	newline	Transmit raster line in bitmap mode
 
+Textlabel tool usage
+	The textlabel utility takes text via the command line
+	and renders it into the format expected by the bitmap
+	mode of the interface. This tool was mainly written
+	as an exercise to explore the FontConfig and FreeType
+	APIs, so it might work or it might not. In most cases,
+	it should. Building textlabel requires fontconfig as
+	well ass freetype development files.
+
+	Recognized options are
+		--font <fontspec>	Set font
+		--width <width>		Set width
+		--			Stop option parsing
+
 Helpful tools
 -------------
 bincodes (https://github.com/jduepmeier/bincodes/) enables you
