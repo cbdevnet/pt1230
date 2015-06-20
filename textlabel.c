@@ -132,6 +132,7 @@ int args_parse(OPTIONS* opts, int argc, char** argv){
 			current_line[i]=0;
 			if(line_store(&(opts->lines), current_line+c)<0){
 				printf("Failed to store line\n");
+				free(current_line);
 				return -1;
 			}
 			c=i+1;
@@ -139,6 +140,7 @@ int args_parse(OPTIONS* opts, int argc, char** argv){
 	}
 	if(line_store(&(opts->lines), current_line+c)<0){
 		printf("Failed to store line\n");
+		free(current_line);
 		return -1;
 	}
 	

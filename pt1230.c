@@ -190,7 +190,13 @@ int process_data(CONF* cfg){
 
 	do{
 		//read data from input
-		bytes=read(cfg->input_fd, data_buffer, sizeof(data_buffer));
+		bytes=read(cfg->input_fd, data_buffer, sizeof(data_buffer)-1);
+
+		if(bytes<0){
+			//escape from loop
+			break;
+		}
+
 		data_buffer[bytes]=0;
 		debug(LOG_DEBUG, cfg->verbosity, "Current data buffer: %s\n", data_buffer);
 
