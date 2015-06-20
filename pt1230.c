@@ -288,6 +288,11 @@ int main(int argc, char** argv){
 	if(parse_arguments(&cfg, argc-1, argv+1)<0){
 		exit(usage(argv[0]));
 	}
+
+	if(cfg.device_fd<0){
+		debug(LOG_ERROR, cfg.verbosity, "Failed to access the printer\n");
+		exit(usage(argv[0]));
+	}
 	
 	debug(LOG_DEBUG, cfg.verbosity, "Status structure size %d\n", sizeof(PROTO_STATUS));
 	debug(LOG_DEBUG, cfg.verbosity, "Init sentence length %d\n", sizeof(PROTO_INIT));
