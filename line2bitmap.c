@@ -18,7 +18,7 @@ int main(int argc, char** argv){
 				return 1;
 			}
 		}
-		if(!strcmp(argv[i], "--height")){
+		else if(!strcmp(argv[i], "--height")){
 			if(i + 1 < argc){
 				image_height = strtoul(argv[i + 1], NULL, 10);
 				i++;
