@@ -20,6 +20,7 @@ int usage(char* fn){
 	printf("\t-b\t\tBitmap mode\n");
 	printf("\t-l\t\tLinemap mode\n");
 	printf("\t-c\t\tChain print (do not feed after printing)\n");
+	printf("\t-m\t\tPrint cut marker after label\n");
 	//TODO invert flag?
 	return 1;
 }
@@ -140,6 +141,9 @@ int parse_arguments(CONF* cfg, int argc, char** argv){
 				case 'c':
 					cfg->chain_print=true;
 					break;
+				case 'm':
+					cfg->print_marker=true;
+					break;
 				default:
 					debug(LOG_ERROR, cfg->verbosity, "Unknown command line argument %s\n", argv[i]);
 					return -1;
@@ -235,7 +239,6 @@ int process_data(CONF* cfg){
 					}
 					break;
 				case MODE_LINEMAP:
-					//FIXME this is somehow slightly wrong
 					switch(data_buffer[i]){
 						case '0':
 							debug(LOG_DEBUG, cfg->verbosity, "Sending white raster line\n");
@@ -266,6 +269,12 @@ int process_data(CONF* cfg){
 		perror("input/read");
 		return -1;
 	}
+	if(cfg->print_marker){
+		debug(LOG_DEBUG, cfg->verbosity, "Sending label delimiter\n");
+		if(send_command(cfg->device_fd, sizeof(PROTO_RASTERLINE_BLACK)-1, PROTO_RASTERLINE_BLACK)<0){
+			return -1;
+		}
+	}
 	return 0;
 }
 
@@ -277,11 +286,12 @@ int main(int argc, char** argv){
 	PROTO_STATUS* status=(PROTO_STATUS*)device_buffer;
 
 	CONF cfg={
-		0,		//verbosity
-		-1,		//device fd
-		-1,		//input fd
-		false,		//chain print
-		MODE_QUERY	//mode
+		.verbosity=0,
+		.device_fd=-1,
+		.input_fd=-1,
+		.chain_print=false,
+		.print_marker=false,
+		.mode=MODE_QUERY
 	};
 
 	//parse arguments

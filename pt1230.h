@@ -41,6 +41,7 @@ typedef struct /*_CONFIG*/ {
 	int device_fd;
 	int input_fd;
 	bool chain_print;
+	bool print_marker;
 	MODE mode;
 } CONF;
 
