@@ -271,7 +271,7 @@ int process_data(CONF* cfg){
 	}
 	if(cfg->print_marker){
 		debug(LOG_DEBUG, cfg->verbosity, "Sending label delimiter\n");
-		for(i=0;i<15;i++){
+		for(i=0;i<20;i++){
 			if(send_command(cfg->device_fd, sizeof(PROTO_RASTERLINE_WHITE)-1, PROTO_RASTERLINE_WHITE)<0){
 				return -1;
 			}

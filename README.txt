@@ -24,6 +24,7 @@ Interface usage
 		-f <file>	Set input file location
 		-v[v[v[v]]]	Increase verbosity
 		-c		Chain print mode
+		-m		Print delimiter/cut mark between labels
 
 	Interface operation modes
 		-s		Status query mode (default)
