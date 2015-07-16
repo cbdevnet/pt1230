@@ -11,15 +11,18 @@ SETUP:
 	 Hint: pt1230 -d DEVICENODE should print a status report 
 	
 	Install the printer backend script pt1230-backend by copying
-	 it to /usr/lib/cups/backends/pt1230
+	 it to /usr/lib/cups/backends/pt1230 (linking is not sufficient)
+	 Some distributions might instead use a path like
+	 /usr/libexec/cups/backends
 
 	If your device node is not /dev/usb/lp0, edit the backend
 	 script to reflect that
 	
 	lpinfo -v should now include a listing like "direct pt1230"
+	 Hint: lpinfo, lpadmin and the cups* commands can only be run as root
 
 	Create the printer by runnning
-	 lpadmin -p MyLabelmaker -P pt1230.ppd -L "Location" -v pt1230
+	 lpadmin -p MyLabelmaker -P pt1230.ppd -L "Location" -v pt1230:any
 
 	Enable printing by running
 		cupsenable MyLabelmaker
