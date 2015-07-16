@@ -1,0 +1,195 @@
+*PPD-Adobe: "4.3"
+
+*% cbdev 2015
+*%This file is free software. It comes without any warranty, to
+*%the extent permitted by applicable law. You can redistribute it
+*%and/or modify it under the terms of the Do What The Fuck You Want
+*%To Public License, Version 2, as published by Sam Hocevar and 
+*%reproduced below.
+*%
+*%DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE 
+*%Version 2, December 2004 
+*%
+*%Copyright (C) 2004 Sam Hocevar <sam@hocevar.net> 
+*%
+*%	Everyone is permitted to copy and distribute verbatim or modified 
+*%	copies of this license document, and changing it is allowed as long 
+*%	as the name is changed. 
+*%
+*%DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE 
+*%TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION 
+*%
+*%	0. You just DO WHAT THE FUCK YOU WANT TO.
+
+*FormatVersion:	"4.3"
+*FileVersion:	"1.1"
+*LanguageVersion: English 
+*LanguageEncoding: ISOLatin1
+*PCFileName:	"BR1230PT.PPD"
+*Manufacturer:	"Brother"
+*Product:	"(1230PC)"
+*cupsVersion:	1.0
+*cupsManualCopies: True
+*cupsModelNumber:  2
+*ModelName:     "Brother PT-1230PC"
+*ShortNickName: "PT1230PC"
+*NickName:      "Brother PT-1230PC"
+*PSVersion:	"(3010.000) 550"
+*PSVersion:	"(3010.000) 651"
+*PSVersion:	"(3010.000) 652"
+*PSVersion:	"(3010.000) 653"
+*PSVersion:	"(3010.000) 704"
+*PSVersion:	"(3010.000) 705"
+*PSVersion:	"(3010.000) 800"
+*PSVersion:	"(3010.000) 815"
+*PSVersion:	"(3010.000) 850"
+*PSVersion:	"(3010.000) 860"
+*PSVersion:	"(3010.000) 861"
+*PSVersion:	"(3010.000) 862"
+*PSVersion:	"(3010.000) 863"
+*PSVersion:	"(3010.000) 864"
+*PSVersion:	"(3010.000) 870"
+*LanguageLevel:	"3"
+*ColorDevice:	False
+*DefaultColorSpace: Gray
+*DefaultResolution: 72dpi
+*FileSystem:	False
+*Throughput:	"1"
+*LandscapeOrientation: Plus90
+*TTRasterizer:	Type42
+*1284DeviceID: "MFG:Brother;MDL:1230PC;CMD:PT-CBP;DRV:Dpt1230,R1,M0,TF;"
+
+*driverName pt1230: ""
+*driverType F/Filter: ""
+*driverObsolete: False
+
+*OpenGroup: General
+*OpenUI *MirrorPrint/Mirror Print: Boolean
+*OrderDependency: 110 AnySetup *MirrorPrint
+*DefaultMirrorPrint: False
+*MirrorPrint True/MirrorPrint: "<</MirrorPrint true>>setpagedevice"
+*MirrorPrint False/Normal: ""
+*CloseUI: *MirrorPrint
+
+*OpenUI *NegativePrint/Negative Print: Boolean
+*OrderDependency: 110 AnySetup *NegativePrint
+*DefaultNegativePrint: False
+*NegativePrint True/NegativePrint: "<</NegativePrint true>>setpagedevice"
+*NegativePrint False/PositivePrint: ""
+*CloseUI: *NegativePrint
+
+
+*CloseGroup: General
+
+*OpenGroup: Finishing/Finishing
+*OpenUI *AdvanceDistance/Advance Distance: PickOne
+*OrderDependency: 110 AnySetup *AdvanceDistance
+*DefaultAdvanceDistance: 0None
+*AdvanceDistance 0None/None: "<</AdvanceDistance 0>>setpagedevice"
+*CloseUI: *AdvanceDistance
+
+*OpenUI *AdvanceMedia/Advance Media: PickOne
+*OrderDependency: 110 AnySetup *AdvanceMedia
+*DefaultAdvanceMedia: Off
+*AdvanceMedia Off/Advance after printing: "<</AdvanceMedia 0>>setpagedevice"
+*CloseUI: *AdvanceMedia
+
+*OpenUI *CutMark/Cut Mark: PickOne
+*OrderDependency: 110 AnySetup *CutMark
+*DefaultCutMark: Off
+*CutMark Off/Do not print cut marks: "<</CutMedia 0>>setpagedevice"
+*CloseUI: *CutMark
+
+*CloseGroup: Finishing
+
+*OpenUI *PageSize/Media Size: PickOne
+*OrderDependency: 10 AnySetup *PageSize
+*DefaultPageSize: 100px
+*PageSize 100px: "<</PageSize[64 100]/ImagingBBox null>>setpagedevice"
+*PageSize 200px: "<</PageSize[64 200]/ImagingBBox null>>setpagedevice"
+*PageSize 300px: "<</PageSize[64 300]/ImagingBBox null>>setpagedevice"
+*PageSize 400px: "<</PageSize[64 400]/ImagingBBox null>>setpagedevice"
+*PageSize 500px: "<</PageSize[64 500]/ImagingBBox null>>setpagedevice"
+*PageSize 600px: "<</PageSize[64 600]/ImagingBBox null>>setpagedevice"
+*PageSize 700px: "<</PageSize[64 700]/ImagingBBox null>>setpagedevice"
+*PageSize 800px: "<</PageSize[64 800]/ImagingBBox null>>setpagedevice"
+*PageSize 900px: "<</PageSize[64 900]/ImagingBBox null>>setpagedevice"
+*PageSize 1000px: "<</PageSize[64 1000]/ImagingBBox null>>setpagedevice"
+*CloseUI: *PageSize
+
+*OpenUI *PageRegion: PickOne
+*OrderDependency: 10 AnySetup *PageRegion
+*DefaultPageRegion: 100px
+*PageRegion 100px: "<</PageSize[64 100]/ImagingBBox null>>setpagedevice"
+*PageRegion 200px: "<</PageSize[64 200]/ImagingBBox null>>setpagedevice"
+*PageRegion 300px: "<</PageSize[64 300]/ImagingBBox null>>setpagedevice"
+*PageRegion 400px: "<</PageSize[64 400]/ImagingBBox null>>setpagedevice"
+*PageRegion 500px: "<</PageSize[64 500]/ImagingBBox null>>setpagedevice"
+*PageRegion 600px: "<</PageSize[64 600]/ImagingBBox null>>setpagedevice"
+*PageRegion 700px: "<</PageSize[64 700]/ImagingBBox null>>setpagedevice"
+*PageRegion 800px: "<</PageSize[64 800]/ImagingBBox null>>setpagedevice"
+*PageRegion 900px: "<</PageSize[64 900]/ImagingBBox null>>setpagedevice"
+*PageRegion 1000px: "<</PageSize[64 1000]/ImagingBBox null>>setpagedevice"
+*CloseUI: *PageRegion
+
+*DefaultImageableArea: 100px
+*ImageableArea 100px:		"0 0 64 100"
+*ImageableArea 200px:		"0 0 64 200"
+*ImageableArea 300px:		"0 0 64 300"
+*ImageableArea 400px:		"0 0 64 400"
+*ImageableArea 500px:		"0 0 64 500"
+*ImageableArea 600px:		"0 0 64 600"
+*ImageableArea 700px:		"0 0 64 700"
+*ImageableArea 800px:		"0 0 64 800"
+*ImageableArea 900px:		"0 0 64 900"
+*ImageableArea 1000px:		"0 0 64 1000"
+
+*DefaultPaperDimension: 100px
+*PaperDimension 100px:	"64 100"
+*PaperDimension 200px:	"64 200"
+*PaperDimension 300px:	"64 300"
+*PaperDimension 400px:	"64 400"
+*PaperDimension 500px:	"64 500"
+*PaperDimension 600px:	"64 600"
+*PaperDimension 700px:	"64 700"
+*PaperDimension 800px:	"64 800"
+*PaperDimension 900px:	"64 900"
+*PaperDimension 1000px:	"64 1000"
+
+*DefaultFont: Courier
+*Font AvantGarde-Book: Standard "(001.006S)" Standard ROM
+*Font AvantGarde-BookOblique: Standard "(001.006S)" Standard ROM
+*Font AvantGarde-Demi: Standard "(001.007S)" Standard ROM
+*Font AvantGarde-DemiOblique: Standard "(001.007S)" Standard ROM
+*Font Bookman-Demi: Standard "(001.004S)" Standard ROM
+*Font Bookman-DemiItalic: Standard "(001.004S)" Standard ROM
+*Font Bookman-Light: Standard "(001.004S)" Standard ROM
+*Font Bookman-LightItalic: Standard "(001.004S)" Standard ROM
+*Font Courier: Standard "(002.004S)" Standard ROM
+*Font Courier-Bold: Standard "(002.004S)" Standard ROM
+*Font Courier-BoldOblique: Standard "(002.004S)" Standard ROM
+*Font Courier-Oblique: Standard "(002.004S)" Standard ROM
+*Font Helvetica: Standard "(001.006S)" Standard ROM
+*Font Helvetica-Bold: Standard "(001.007S)" Standard ROM
+*Font Helvetica-BoldOblique: Standard "(001.007S)" Standard ROM
+*Font Helvetica-Narrow: Standard "(001.006S)" Standard ROM
+*Font Helvetica-Narrow-Bold: Standard "(001.007S)" Standard ROM
+*Font Helvetica-Narrow-BoldOblique: Standard "(001.007S)" Standard ROM
+*Font Helvetica-Narrow-Oblique: Standard "(001.006S)" Standard ROM
+*Font Helvetica-Oblique: Standard "(001.006S)" Standard ROM
+*Font NewCenturySchlbk-Bold: Standard "(001.009S)" Standard ROM
+*Font NewCenturySchlbk-BoldItalic: Standard "(001.007S)" Standard ROM
+*Font NewCenturySchlbk-Italic: Standard "(001.006S)" Standard ROM
+*Font NewCenturySchlbk-Roman: Standard "(001.007S)" Standard ROM
+*Font Palatino-Bold: Standard "(001.005S)" Standard ROM
+*Font Palatino-BoldItalic: Standard "(001.005S)" Standard ROM
+*Font Palatino-Italic: Standard "(001.005S)" Standard ROM
+*Font Palatino-Roman: Standard "(001.005S)" Standard ROM
+*Font Symbol: Special "(001.007S)" Special ROM
+*Font Times-Bold: Standard "(001.007S)" Standard ROM
+*Font Times-BoldItalic: Standard "(001.009S)" Standard ROM
+*Font Times-Italic: Standard "(001.007S)" Standard ROM
+*Font Times-Roman: Standard "(001.007S)" Standard ROM
+*Font ZapfChancery-MediumItalic: Standard "(001.007S)" Standard ROM
+*Font ZapfDingbats: Special "(001.004S)" Standard ROM
+
