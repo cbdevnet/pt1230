@@ -21,12 +21,17 @@ SETUP:
 	lpinfo -v should now include a listing like "direct pt1230"
 	 Hint: lpinfo, lpadmin and the cups* commands can only be run as root
 
+	Either continue by adding the printer via the web interface from here
+	on, or do the following in a shell
+
 	Create the printer by runnning
 	 lpadmin -p MyLabelmaker -P pt1230.ppd -L "Location" -v pt1230:any
 
 	Enable printing by running
 		cupsenable MyLabelmaker
 		cupsaccept MyLabelmaker
+
+
 
 	You should now be able to print labels. Layout them in landscape,
 	 select a fitting label length in the print options and print them.
