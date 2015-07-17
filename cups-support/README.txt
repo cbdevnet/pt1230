@@ -19,8 +19,8 @@ SETUP:
 	 Hint: lpinfo, lpadmin and the cups* commands can only be run as root
 
 	You can now continue by adding the printer via the web interface.
-	 The web interface will ask you about the device URI at some point,
-	 enter your device node there.
+	 The web interface will ask you about the device URI/connection string
+	 at some point. This should be pt1230:DEVICENODE, e.g. pt1230:/dev/usb/lp1
 
 	Alternatively, do the following in a shell
 
