@@ -1,9 +1,13 @@
 #!/bin/bash
-DEVICENODE="/dev/usb/lp0"
 
 if test "$#" = "0"; then 
-	echo 'direct pt1230:any "Unknown" "pt1230 cbdev hackdriver"'
+	echo 'direct pt1230 "Unknown" "pt1230 cbdev hackdriver"'
 	exit 0
+fi
+
+DEVICENODE=${DEVICE_URI#pt1230:}
+if [ -z "$DEVICENODE" ]; then
+	DEVICENODE="/dev/usb/lp0"
 fi
 
 # redirect file arguments to stdin

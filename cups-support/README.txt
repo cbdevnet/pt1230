@@ -14,18 +14,19 @@ SETUP:
 	 it to /usr/lib/cups/backends/pt1230 (linking is not sufficient)
 	 Some distributions might instead use a path like
 	 /usr/libexec/cups/backends
-
-	If your device node is not /dev/usb/lp0, edit the backend
-	 script to reflect that
 	
 	lpinfo -v should now include a listing like "direct pt1230"
 	 Hint: lpinfo, lpadmin and the cups* commands can only be run as root
 
-	Either continue by adding the printer via the web interface from here
-	on, or do the following in a shell
+	You can now continue by adding the printer via the web interface.
+	 The web interface will ask you about the device URI at some point,
+	 enter your device node there.
+
+	Alternatively, do the following in a shell
 
 	Create the printer by runnning
-	 lpadmin -p MyLabelmaker -P pt1230.ppd -L "Location" -v pt1230:any
+	 lpadmin -p MyLabelmaker -P pt1230.ppd -L "Location" -v pt1230:DEVICENODE
+	 Hint: Remember to substitute DEVICENODE with your actual device node
 
 	Enable printing by running
 		cupsenable MyLabelmaker
