@@ -442,7 +442,7 @@ int main(int argc, char** argv){
 
 	//clean up
 	close(cfg.device_fd);
-	if(input_fd > 0){
+	if(cfg.input_fd > 0){
 		close(cfg.input_fd);
 	}
 	return 0;
