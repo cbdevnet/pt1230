@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <errno.h>
 
 #include "pt1230.h"
 
@@ -15,26 +16,46 @@ int usage(char* fn){
 	printf("\t-h\t\tPrint this text\n");
 	printf("\t-d <devicenode>\tSet output device node (Default: %s)\n", DEFAULT_DEVICENODE);
 	printf("\t-f <inputfile>\tSpecify input file (Default: read from stdin)\n");
-	printf("\t-v\t\tIncrease verbosity\n");
+	printf("\t-v <verbosity>\t\tSet output verbosity (0-4, Default: 1)\n");
 	printf("\t-s\t\tQuery printer status (default)\n");
 	printf("\t-b\t\tBitmap mode\n");
 	printf("\t-l\t\tLinemap mode\n");
 	printf("\t-c\t\tChain print (do not feed after printing)\n");
 	printf("\t-m\t\tPrint cut marker after label\n");
+	printf("\t-u\t\tPrefix log output with severity (CUPS-compatible)\n");
 	//TODO invert flag?
 	return 1;
 }
 
-void debug(unsigned severity, unsigned current_level, char* fmt, ...){
+void debug(LOGGER logger, unsigned severity, char* fmt, ...){
 	va_list args;
+	char* severity_tag="DEFAULT";
 	va_start(args, fmt);
-	if(severity<=current_level){
-		vfprintf(stderr, fmt, args);
+	if(severity<=logger.verbosity){
+		if(logger.cups_logging){
+			switch(severity){
+				//case LOG_ERROR:
+				//	severity_tag="ERROR";
+				//	break;
+				case LOG_WARNING:
+					severity_tag="WARNING";
+					break;
+				case LOG_INFO:
+					severity_tag="INFO";
+					break;
+				case LOG_DEBUG:
+					severity_tag="DEBUG";
+					break;
+			}
+
+			fprintf(logger.stream, "%s: ", severity_tag);
+		}
+		vfprintf(logger.stream, fmt, args);
 	}
 	va_end(args);
 }
 
-int fetch_status(int fd, int attempts, unsigned timeout, size_t buffer_length, char* buffer){
+int fetch_status(LOGGER logger, int fd, int attempts, unsigned timeout, size_t buffer_length, char* buffer){
 	unsigned run;
 	ssize_t bytes;
 
@@ -50,7 +71,7 @@ int fetch_status(int fd, int attempts, unsigned timeout, size_t buffer_length, c
 		bytes=read(fd, buffer, buffer_length);
 
 		if(bytes<0){
-			perror("device/read");
+			debug(logger, LOG_ERROR, "device/read: %s\n", strerror(errno));
 			return -1;
 		}
 
@@ -61,7 +82,7 @@ int fetch_status(int fd, int attempts, unsigned timeout, size_t buffer_length, c
 		//the device only ever should send full PROTO_STATUS reports
 		//that is, according to some document.
 		if(bytes%sizeof(PROTO_STATUS)!=0){
-			debug(LOG_ERROR, 0, "Invalid response from device\n");
+			debug(logger, LOG_ERROR, "Invalid response from device\n");
 			return -1;
 		}
 
@@ -90,18 +111,18 @@ int print_status(unsigned count, PROTO_STATUS* data){
 	return 0;
 }
 
-int send_command(int fd, size_t length, char* buffer){
+int send_command(LOGGER logger, int fd, size_t length, char* buffer){
 	ssize_t bytes;
 
 	bytes=write(fd, buffer, length);
 
 	if(bytes<0){
-		perror("device/write");
+		debug(logger, LOG_ERROR, "device/write: %s\n", strerror(errno));
 		return -1;
 	}
 
 	if(bytes!=length){
-		debug(LOG_ERROR, 0, "Incomplete write on device\n");
+		debug(logger, LOG_ERROR, "Incomplete write on device\n");
 		return -1;
 	}
 
@@ -109,7 +130,7 @@ int send_command(int fd, size_t length, char* buffer){
 }
 
 int parse_arguments(CONF* cfg, int argc, char** argv){
-	unsigned i, v;
+	unsigned i;
 	char* device=NULL;
 	char* input=NULL;
 
@@ -125,9 +146,7 @@ int parse_arguments(CONF* cfg, int argc, char** argv){
 					input=argv[++i];
 					break;
 				case 'v':
-					for(v=1;argv[i][v]=='v';v++){
-					}
-					cfg->verbosity=v-1;
+					cfg->logger.verbosity=strtoul(argv[++i], NULL, 10);
 					break;
 				case 's':
 					cfg->mode=MODE_QUERY;
@@ -144,13 +163,16 @@ int parse_arguments(CONF* cfg, int argc, char** argv){
 				case 'm':
 					cfg->print_marker=true;
 					break;
+				case 'u':
+					cfg->logger.cups_logging=true;
+					break;
 				default:
-					debug(LOG_ERROR, cfg->verbosity, "Unknown command line argument %s\n", argv[i]);
+					debug(cfg->logger, LOG_ERROR, "Unknown command line argument %s\n", argv[i]);
 					return -1;
 			}
 		}
 		else{
-			debug(LOG_ERROR, cfg->verbosity, "Unknown command line argument %s\n", argv[i]);
+			debug(cfg->logger, LOG_ERROR, "Unknown command line argument %s\n", argv[i]);
 			return -1;
 		}
 	}
@@ -159,17 +181,17 @@ int parse_arguments(CONF* cfg, int argc, char** argv){
 	if(!device){
 		device=DEFAULT_DEVICENODE;
 	}
-	debug(LOG_INFO, cfg->verbosity, "Opening device at %s\n", device);
+	debug(cfg->logger, LOG_INFO, "Opening device at %s\n", device);
 	cfg->device_fd=open(device, O_RDWR | O_SYNC);
 	if(cfg->device_fd<0){
-		debug(LOG_ERROR, cfg->verbosity, "Failed to open printer device node\n");
+		debug(cfg->logger, LOG_ERROR, "Failed to open printer device node\n");
 		return -1;
 	}
 
 	//Open input data source
 	if(input){
 		//Open file
-		debug(LOG_INFO, cfg->verbosity, "Opening input file at %s\n", input);
+		debug(cfg->logger, LOG_INFO, "Opening input file at %s\n", input);
 		cfg->input_fd=open(input, O_RDONLY);
 	}
 	else{
@@ -177,7 +199,7 @@ int parse_arguments(CONF* cfg, int argc, char** argv){
 	}
 
 	if(cfg->input_fd<0){
-		debug(LOG_ERROR, cfg->verbosity, "Failed to open input data source\n");
+		debug(cfg->logger, LOG_ERROR, "Failed to open input data source\n");
 		return -1;
 	}
 
@@ -202,7 +224,7 @@ int process_data(CONF* cfg){
 		}
 
 		data_buffer[bytes]=0;
-		debug(LOG_DEBUG, cfg->verbosity, "Current data buffer: %s\n", data_buffer);
+		debug(cfg->logger, LOG_DEBUG, "Current data buffer: %s\n", data_buffer);
 
 		//process
 		for(i=0;i<bytes;i++){
@@ -220,11 +242,11 @@ int process_data(CONF* cfg){
 							}
 							break;
 						case '\n':
-							debug(LOG_DEBUG, cfg->verbosity, "Sending bitmap raster line\n");
-							if(send_command(cfg->device_fd, sizeof(PROTO_RASTERLINE)-1, PROTO_RASTERLINE)<0){
+							debug(cfg->logger, LOG_DEBUG, "Sending bitmap raster line\n");
+							if(send_command(cfg->logger, cfg->device_fd, sizeof(PROTO_RASTERLINE)-1, PROTO_RASTERLINE)<0){
 								return -1;
 							}
-							if(send_command(cfg->device_fd, sizeof(line_buffer), (char*)line_buffer)<0){
+							if(send_command(cfg->logger, cfg->device_fd, sizeof(line_buffer), (char*)line_buffer)<0){
 								return -1;
 							}
 
@@ -235,30 +257,30 @@ int process_data(CONF* cfg){
 							current_byte=0;
 							break;
 						default:
-							debug(LOG_WARNING, cfg->verbosity, "Illegal character '%02X' in input stream, ignoring\n", (unsigned char)data_buffer[i]);
+							debug(cfg->logger, LOG_WARNING, "Illegal character '%02X' in input stream, ignoring\n", (unsigned char)data_buffer[i]);
 					}
 					break;
 				case MODE_LINEMAP:
 					switch(data_buffer[i]){
 						case '0':
-							debug(LOG_DEBUG, cfg->verbosity, "Sending white raster line\n");
-							if(send_command(cfg->device_fd, sizeof(PROTO_RASTERLINE_WHITE)-1, PROTO_RASTERLINE_WHITE)<0){
+							debug(cfg->logger, LOG_DEBUG, "Sending white raster line\n");
+							if(send_command(cfg->logger, cfg->device_fd, sizeof(PROTO_RASTERLINE_WHITE)-1, PROTO_RASTERLINE_WHITE)<0){
 								return -1;
 							}
 							break;
 						case '1':
-							debug(LOG_DEBUG, cfg->verbosity, "Sending black raster line\n");
-							if(send_command(cfg->device_fd, sizeof(PROTO_RASTERLINE_BLACK)-1, PROTO_RASTERLINE_BLACK)<0){
+							debug(cfg->logger, LOG_DEBUG, "Sending black raster line\n");
+							if(send_command(cfg->logger, cfg->device_fd, sizeof(PROTO_RASTERLINE_BLACK)-1, PROTO_RASTERLINE_BLACK)<0){
 								return -1;
 							}
 							break;
 						default:
-							debug(LOG_WARNING, cfg->verbosity, "Illegal character '%02X' in input stream, ignoring\n", (unsigned char)data_buffer[i]);
+							debug(cfg->logger, LOG_WARNING, "Illegal character '%02X' in input stream, ignoring\n", (unsigned char)data_buffer[i]);
 					}
 					break;
 				default:
 					//FIXME tcc falls through here because of some bug
-					debug(LOG_ERROR, cfg->verbosity, "Illegal branch, mode is %d, aborting\n", cfg->mode);
+					debug(cfg->logger, LOG_ERROR, "Illegal branch, mode is %d, aborting\n", cfg->mode);
 					return -1;
 			}
 			usleep(1000);
@@ -266,17 +288,17 @@ int process_data(CONF* cfg){
 	}
 	while(bytes>0);
 	if(bytes<0){
-		perror("input/read");
+		debug(cfg->logger, LOG_ERROR, "input/read: %s\n", strerror(errno));
 		return -1;
 	}
 	if(cfg->print_marker){
-		debug(LOG_DEBUG, cfg->verbosity, "Sending label delimiter\n");
+		debug(cfg->logger, LOG_DEBUG, "Sending label delimiter\n");
 		for(i=0;i<20;i++){
-			if(send_command(cfg->device_fd, sizeof(PROTO_RASTERLINE_WHITE)-1, PROTO_RASTERLINE_WHITE)<0){
+			if(send_command(cfg->logger, cfg->device_fd, sizeof(PROTO_RASTERLINE_WHITE)-1, PROTO_RASTERLINE_WHITE)<0){
 				return -1;
 			}
 		}
-		if(send_command(cfg->device_fd, sizeof(PROTO_RASTERLINE_BLACK)-1, PROTO_RASTERLINE_BLACK)<0){
+		if(send_command(cfg->logger, cfg->device_fd, sizeof(PROTO_RASTERLINE_BLACK)-1, PROTO_RASTERLINE_BLACK)<0){
 			return -1;
 		}
 	}
@@ -290,13 +312,18 @@ int main(int argc, char** argv){
 	bool print_ended=false;
 	PROTO_STATUS* status=(PROTO_STATUS*)device_buffer;
 
+
 	CONF cfg={
-		.verbosity=0,
 		.device_fd=-1,
 		.input_fd=-1,
 		.chain_print=false,
 		.print_marker=false,
-		.mode=MODE_QUERY
+		.mode=MODE_QUERY,
+		.logger = {
+			.stream = stderr,
+			.verbosity = 1,
+			.cups_logging = false
+		}
 	};
 
 	//parse arguments
@@ -305,88 +332,88 @@ int main(int argc, char** argv){
 	}
 
 	if(cfg.device_fd<0){
-		debug(LOG_ERROR, cfg.verbosity, "Failed to access the printer\n");
+		debug(cfg.logger, LOG_ERROR, "Failed to access the printer\n");
 		exit(usage(argv[0]));
 	}
 	
-	debug(LOG_DEBUG, cfg.verbosity, "Status structure size %d\n", sizeof(PROTO_STATUS));
-	debug(LOG_DEBUG, cfg.verbosity, "Init sentence length %d\n", sizeof(PROTO_INIT));
-	debug(LOG_INFO, cfg.verbosity, "Verbosity %d\n", cfg.verbosity);
+	debug(cfg.logger, LOG_DEBUG, "Status structure size %d\n", sizeof(PROTO_STATUS));
+	debug(cfg.logger, LOG_DEBUG, "Init sentence length %d\n", sizeof(PROTO_INIT));
+	debug(cfg.logger, LOG_DEBUG, "Verbosity %d\n", cfg.logger.verbosity);
 
 	//fetch device_fd data for leftovers
-	if(fetch_status(cfg.device_fd, DEFAULT_ATTEMPTS, DEFAULT_TIMEOUT, sizeof(device_buffer), device_buffer)<0){
+	if(fetch_status(cfg.logger, cfg.device_fd, DEFAULT_ATTEMPTS, DEFAULT_TIMEOUT, sizeof(device_buffer), device_buffer)<0){
 		return -1;
 	}
 
 	//send init command
-	if(send_command(cfg.device_fd, sizeof(PROTO_INIT)-1, PROTO_INIT)<0){
+	if(send_command(cfg.logger, cfg.device_fd, sizeof(PROTO_INIT)-1, PROTO_INIT)<0){
 		return -1;
 	}
 
 	//send status request
-	if(send_command(cfg.device_fd, sizeof(PROTO_STATUS_REQUEST)-1, PROTO_STATUS_REQUEST)<0){
+	if(send_command(cfg.logger, cfg.device_fd, sizeof(PROTO_STATUS_REQUEST)-1, PROTO_STATUS_REQUEST)<0){
 		return -1;
 	}
 
 	//wait for status response
-	count=fetch_status(cfg.device_fd, DEFAULT_ATTEMPTS, DEFAULT_TIMEOUT, sizeof(device_buffer), device_buffer);
+	count=fetch_status(cfg.logger, cfg.device_fd, DEFAULT_ATTEMPTS, DEFAULT_TIMEOUT, sizeof(device_buffer), device_buffer);
 	if(count<0){
 		return -1;
 	}
 	if(count==0){
-		debug(LOG_WARNING, cfg.verbosity, "Received no status data, continuing anyway...\n");
+		debug(cfg.logger, LOG_WARNING, "Received no status data, continuing anyway...\n");
 	}
-	debug(LOG_DEBUG, cfg.verbosity, "Received %d status response structures\n", count);
+	debug(cfg.logger, LOG_DEBUG, "Received %d status response structures\n", count);
 
-	if(cfg.mode==MODE_QUERY||cfg.verbosity>0){
+	if(cfg.mode==MODE_QUERY||cfg.logger.verbosity>1){
 		//dump status record
 		print_status(count, status);
 	}
 	
 	if(cfg.mode!=MODE_QUERY){
 		//switch to raster graphics mode
-		debug(LOG_INFO, cfg.verbosity, "Switching to raster graphics mode\n");
-		if(send_command(cfg.device_fd, sizeof(PROTO_RASTER)-1, PROTO_RASTER)<0){
+		debug(cfg.logger, LOG_INFO, "Switching to raster graphics mode\n");
+		if(send_command(cfg.logger, cfg.device_fd, sizeof(PROTO_RASTER)-1, PROTO_RASTER)<0){
 			return -1;
 		}
 
 		//handle input data
-		debug(LOG_STATUS, cfg.verbosity, "Reading image data\n");
+		debug(cfg.logger, LOG_INFO, "Reading image data\n");
 		if(process_data(&cfg)<0){
 			return -1;
 		}
 		
 		//flush printing buffer to tape
-		debug(LOG_STATUS, cfg.verbosity, "Starting printer processing\n");
+		debug(cfg.logger, LOG_INFO, "Starting printer processing\n");
 		if(cfg.chain_print){
-			if(send_command(cfg.device_fd, sizeof(PROTO_PRINT)-1, PROTO_PRINT)<0){
+			if(send_command(cfg.logger, cfg.device_fd, sizeof(PROTO_PRINT)-1, PROTO_PRINT)<0){
 				return -1;
 			}
 		}
 		else{
-			if(send_command(cfg.device_fd, sizeof(PROTO_PRINT_FEED)-1, PROTO_PRINT_FEED)<0){
+			if(send_command(cfg.logger, cfg.device_fd, sizeof(PROTO_PRINT_FEED)-1, PROTO_PRINT_FEED)<0){
 				return -1;
 			}
 		}
 
 		//wait until printer is done
-		debug(LOG_STATUS, cfg.verbosity, "Waiting for printer to finish\n");
+		debug(cfg.logger, LOG_INFO, "Waiting for printer to finish\n");
 		
 		while(!print_ended){
-			count=fetch_status(cfg.device_fd, -1, 5000, sizeof(device_buffer), device_buffer);
+			count=fetch_status(cfg.logger, cfg.device_fd, -1, 5000, sizeof(device_buffer), device_buffer);
 			if(count<0){
 				return -1;
 			}
 			
 			if(count==0){
-				debug(LOG_WARNING, cfg.verbosity, "Received no status data, printer may have encountered an error or still be printing\n");
+				debug(cfg.logger, LOG_WARNING, "Received no status data, printer may have encountered an error or still be printing\n");
 				break;
 			}
 			else{
-				debug(LOG_DEBUG, cfg.verbosity, "Received %d status response structures\n", count);
+				debug(cfg.logger, LOG_DEBUG, "Received %d status response structures\n", count);
 			}
 		
-			if(cfg.verbosity>=LOG_DEBUG){
+			if(cfg.logger.verbosity>=LOG_DEBUG){
 				print_status(count, status);
 			}
 
@@ -397,16 +424,16 @@ int main(int argc, char** argv){
 						//should not happen here, if it does anyway, ignore it
 						break;
 					case 0x01:
-						debug(LOG_STATUS, cfg.verbosity, "Printing completed successfully\n");
+						debug(cfg.logger, LOG_INFO, "Printing completed successfully\n");
 						print_ended=true;
 						break;
 					case 0x02:
-						debug(LOG_ERROR, cfg.verbosity, "Device reported an error, status dump follows\n");
+						debug(cfg.logger, LOG_ERROR, "Device reported an error, status dump follows\n");
 						print_status(1, status+i);
 						print_ended=true;
 						break;
 					case 0x06:
-						debug(LOG_DEBUG, cfg.verbosity, "Phase change\n");
+						debug(cfg.logger, LOG_DEBUG, "Phase change\n");
 						break;
 				}
 			}

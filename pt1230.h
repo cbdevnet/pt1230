@@ -36,19 +36,24 @@ typedef enum /*_1230_MODE*/ {
 	MODE_LINEMAP=2
 } MODE;
 
-typedef struct /*_CONFIG*/ {
+typedef struct /*_LOGGER*/ {
+	FILE* stream;
 	unsigned verbosity;
+	bool cups_logging;
+} LOGGER;
+
+typedef struct /*_CONFIG*/ {
 	int device_fd;
 	int input_fd;
 	bool chain_print;
 	bool print_marker;
 	MODE mode;
+	LOGGER logger;
 } CONF;
 
 #define LOG_ERROR 0
-#define LOG_STATUS 0
 #define LOG_WARNING 0
 #define LOG_INFO 1
 #define LOG_DEBUG 2
 
-void debug(unsigned severity, unsigned current_level, char* fmt, ...);
+void debug(LOGGER logger, unsigned severity, char* fmt, ...);

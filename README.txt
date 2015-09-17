@@ -22,7 +22,7 @@ Interface usage
 		-h		Print a short help text
 		-d <device>	Override device node location
 		-f <file>	Set input file location
-		-v[v[v[v]]]	Increase verbosity
+		-v <verbosity>	Set output verbosity (0 - 4, Default: 1 (Info))
 		-c		Chain print mode
 		-m		Print delimiter/cut mark between labels
 
