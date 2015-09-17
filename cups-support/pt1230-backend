@@ -17,7 +17,6 @@ fi
 
 # Pipeline explanation
 #	gs		Renders the input postscript to the 64 char wide ASCII 0/1 map
-#	tail		Removes the ghostscripts dumb header
-#	pt1230		Actually prints the thing
-#	read loop	Rewrite interface output to appear in CUPS' status page
-gs -q -dBATCH -dQUIET -dNOPAUSE -sDEVICE=pbm -sOutputFile=- - | tail -n +4 | pt1230 -d $DEVICENODE -b 2>&1 | while read line; do printf "INFO: %s\n" "$line" 1>&2; done
+#	tail		Remove ghostscript header
+#	pt1230		Actually print the thing
+gs -q -dBATCH -dQUIET -dNOPAUSE -sDEVICE=pbm -sOutputFile=- - | tail -n +4 | pt1230 -u -b -d $DEVICENODE
