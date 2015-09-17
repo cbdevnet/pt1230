@@ -442,6 +442,8 @@ int main(int argc, char** argv){
 
 	//clean up
 	close(cfg.device_fd);
-	close(cfg.input_fd);
+	if(input_fd > 0){
+		close(cfg.input_fd);
+	}
 	return 0;
 }
