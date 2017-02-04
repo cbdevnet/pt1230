@@ -280,7 +280,7 @@ int process_data(CONF* cfg){
 					debug(cfg->logger, LOG_ERROR, "Illegal branch, mode is %d, aborting\n", cfg->mode);
 					return -1;
 			}
-			usleep(1000);
+			//usleep(100);
 		}
 	}
 	while(bytes > 0);
