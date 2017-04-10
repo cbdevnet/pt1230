@@ -34,6 +34,8 @@ size_t stored_lines(char** lines){
 	return u;
 }
 
+#define max(a,b) (( (a) > (b) ) ? (a) : (b))
+
 int line_store(char*** lines, char* line){
 	size_t size = 0;
 
@@ -220,9 +222,11 @@ bool load_font(FT_Library ft, FcPattern* pattern, unsigned char_height, FT_Face*
 	return true;
 }
 
-bool load_glyphs(char** lines, FT_Face font_face, FT_BitmapGlyph** glyphs){
+bool load_glyphs(char** lines, FT_Face font_face, FT_BitmapGlyph** glyphs, unsigned** offsets){
 	//render all strings into glyph arrays
 	size_t i, c;
+	unsigned baseline = abs(font_face->size->metrics.descender / 64);
+
 	for(i = 0; i < stored_lines(lines); i++){
 		for(c = 0; c < strlen(lines[i]); c++){
 			//get glyph
@@ -235,6 +239,8 @@ bool load_glyphs(char** lines, FT_Face font_face, FT_BitmapGlyph** glyphs){
 				fprintf(stderr, "Failed to copy glyph, aborting\n");
 				return false;
 			}
+			//calculate base offset from metrics because extracted glyphs do not carry them
+			offsets[i][c] = max(0, baseline - (font_face->glyph->metrics.height - font_face->glyph->metrics.horiBearingY) / 64);
 			//render to bitmap
 			if(FT_Glyph_To_Bitmap((FT_Glyph*)(glyphs[i]) + c, FT_RENDER_MODE_MONO, 0, 1)){
 				fprintf(stderr, "Failed to render glyph, aborting\n");
@@ -250,7 +256,7 @@ bool load_glyphs(char** lines, FT_Face font_face, FT_BitmapGlyph** glyphs){
 	return true;
 }
 
-void render(char** lines, FT_BitmapGlyph** glyphs, unsigned line_height, unsigned extra_filler){
+void render(char** lines, FT_BitmapGlyph** glyphs, unsigned** glyph_offsets, unsigned line_height, unsigned extra_filler){
 	ssize_t i, c;
 	bool done_rendering;
 	int* current_character = calloc(stored_lines(lines), sizeof(int));
@@ -271,27 +277,24 @@ void render(char** lines, FT_BitmapGlyph** glyphs, unsigned line_height, unsigne
 			//line already ended, fill with zeroes
 			if(current_character[i] >= strlen(lines[i])){
 				for(c = 0; c < line_height; c++){
-					fputc(stdout, '0');
+					fputc('0', stdout);
 				}
 				continue;
 			}
 
+			done_rendering = false;
 			FT_BitmapGlyph current = glyphs[i][current_character[i]];
 			uint8_t mask = 1 << (7 - (current_rasterline[i] % 8));
 
 			//fprintf(stderr, "line %d of char %d of line %d, mask %2X, offset %d, rows %d, width %d, pitch %d\n", current_rasterline[i], current_character[i], i, mask, current_rasterline[i]/8, current->bitmap.rows, current->bitmap.width, current->bitmap.pitch);
 
-			if(current_rasterline[i] < current->bitmap.width){
-				done_rendering = false;
-			}
-			else{
+			if(current_rasterline[i] >= current->bitmap.width){
 				if(current_character[i] < strlen(lines[i])){
 					current_character[i]++;
 					current_rasterline[i] = 0;
-					done_rendering = false;
 					//print separator line
 					for(c = 0; c < line_height; c++){
-						printf("0");
+						fputc('0', stdout);
 					}
 					continue;
 				}
@@ -301,27 +304,32 @@ void render(char** lines, FT_BitmapGlyph** glyphs, unsigned line_height, unsigne
 				}
 			}
 
+			//print bottom offset
+			for(c = 0; c < glyph_offsets[i][current_character[i]]; c++){
+				fputc('0', stdout);
+			}
+
 			//print pixels
 			for(c = current->bitmap.rows - 1; c >= 0; c--){
 				uint8_t cell_index = (c * current->bitmap.pitch) + (current_rasterline[i] / 8);
 				uint8_t cell_value = current->bitmap.buffer[cell_index];
 				//fprintf(stderr, "\nTesting cell %d with value %2X -> %2X -> ", cell_index, cell_value, cell_value&mask);
 
-				printf("%c", ((cell_value&mask) > 0) ? '1' : '0');
+				fputc(((cell_value&mask) > 0) ? '1' : '0', stdout);
 			}
 
 			//print filler
-			for(c = current->bitmap.rows; c < line_height; c++){
-				printf("0");
+			for(c = current->bitmap.rows + glyph_offsets[i][current_character[i]]; c < line_height; c++){
+				fputc('0', stdout);
 			}
 
 			current_rasterline[i]++;
 		}
 
 		for(c = 0; c < extra_filler; c++){
-			printf("0");
+			fputc('0', stdout);
 		}
-		printf("\n");
+		fputc('\n', stdout);
 	} while (!done_rendering);
 
 	free(current_character);
@@ -336,7 +344,8 @@ int main(int argc, char** argv){
 	};
 	size_t i, c;
 	FT_Library ft_handle;
-	FT_BitmapGlyph** glyphs;
+	FT_BitmapGlyph** glyphs = NULL;
+	unsigned** glyph_offsets = NULL;
 	FT_Face font_face;
 	unsigned line_height = 64, extra_filler;
 
@@ -372,23 +381,26 @@ int main(int argc, char** argv){
 
 	//allocate glyph buffer
 	glyphs = calloc(stored_lines(opts.lines), sizeof(FT_BitmapGlyph*));
-	if(!glyphs){
-		printf("Failed to allocate memory\n");
+	glyph_offsets = calloc(stored_lines(opts.lines), sizeof(unsigned*));
+	if(!glyphs || !glyph_offsets){
+		fprintf(stderr, "Failed to allocate memory\n");
 		exit(EXIT_FAILURE);
 	}
 
 	for(i = 0; i < stored_lines(opts.lines); i++){
 		glyphs[i] = calloc(strlen(opts.lines[i]), sizeof(FT_BitmapGlyph));
-		if(!glyphs[i]){
-			printf("Failed to allocate memory for glyph array\n");
+		glyph_offsets[i] = calloc(strlen(opts.lines[i]), sizeof(unsigned));
+		if(!glyphs[i] || !glyph_offsets[i]){
+			fprintf(stderr, "Failed to allocate memory for glyph array\n");
 			exit(EXIT_FAILURE);
 		}
 	}
 
 	//load the font & render
 	if(load_font(ft_handle, match_font(opts.fontspec), line_height, &font_face)
-			&& load_glyphs(opts.lines, font_face, glyphs)){
-		render(opts.lines, glyphs, line_height, extra_filler);
+			&& load_glyphs(opts.lines, font_face, glyphs, glyph_offsets)){
+		//baseline of the font is the absolute of the lowest descender
+		render(opts.lines, glyphs, glyph_offsets, line_height, extra_filler);
 	}
 
 	//clean up
