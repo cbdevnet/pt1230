@@ -1,17 +1,17 @@
-.PHONY: all clean
+.PHONY: all clean install
+export PREFIX ?= /usr
 
-CFLAGS=-Wall -g
+CFLAGS ?= -Wall -g
+textlabel: CFLAGS += $(shell freetype-config --cflags)
+textlabel: LDLIBS += $(shell freetype-config --libs) -lfontconfig
 
-all: pt1230
+all: pt1230 textlabel line2bitmap
 
-interactive: interactive.c
+install:
+	install -m 0755 pt1230 "$(DESTDIR)$(PREFIX)/sbin"
+	install -m 0755 textlabel "$(DESTDIR)$(PREFIX)/bin"
+	install -m 0755 line2bitmap "$(DESTDIR)$(PREFIX)/bin"
 
-pt1230: pt1230.c
-
-textlabel: textlabel.c
-	$(CC) $(CFLAGS) $(shell freetype-config --cflags) $(shell freetype-config --libs) -lfontconfig -o $@ $<
-
-line2bitmap: line2bitmap.c
 
 clean:
 	-rm interactive
