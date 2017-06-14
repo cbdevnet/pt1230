@@ -17,7 +17,7 @@ See below for some ideas on software to do this with.
 
 Save as ASCII bitmap (or convert to that, see below).
 
-Run `./pt1230` to see wether your printer was detected successfully.
+Run `./pt1230` to see whether your printer was detected successfully.
 
 Run `./pt1230 -b input.file` to print a label.
 
