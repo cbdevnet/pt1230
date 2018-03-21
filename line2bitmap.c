@@ -3,11 +3,11 @@
 #include <stdlib.h>
 
 int main(int argc, char** argv){
-	unsigned bar_width = 1, image_height = 64, i;
+	size_t bar_width = 1, image_height = 64, i;
 	FILE* source = stdin;
-	unsigned x, y;
+	size_t x, y;
 
-	for(i=1; i<argc; i++){
+	for(i = 1; i < argc; i++){
 		if(!strcmp(argv[i], "--width")){
 			if(i + 1 < argc){
 				bar_width = strtoul(argv[i + 1], NULL, 10);
