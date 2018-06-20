@@ -32,6 +32,7 @@ For the `textlabel` tool, the following development packages are required (liste
 
 * libfreetype6-dev
 * libfontconfig1-dev
+* pkgconf
 
 `make` builds the main interface binary, the textlabel tool and line2bitmap.
 

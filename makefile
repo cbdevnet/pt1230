@@ -2,8 +2,8 @@
 export PREFIX ?= /usr
 
 CFLAGS ?= -Wall -g
-textlabel: CFLAGS += $(shell freetype-config --cflags)
-textlabel: LDLIBS += $(shell freetype-config --libs) -lfontconfig
+textlabel: CFLAGS += $(shell pkg-config --cflags freetype2)
+textlabel: LDLIBS += $(shell pkg-config --libs freetype2) -lfontconfig
 
 all: pt1230 textlabel line2bitmap
 
